@@ -56,7 +56,11 @@ func GetMessageTemplateAll(accessToken string) (MessageTemplateAll, error) {
 func SendMessageTemplate(accessToken string, jsonStruct interface{}) (MessageTemplateSendResult, error) {
 	var data MessageTemplateSendResult
 	// get remote data
-	res, err := HttpPostJson(fmt.Sprintf(MESSAGE_TEMPLATE_ALL_API_URL, accessToken), jsonStruct)
+	res, err := HttpPostJson(
+		fmt.Sprintf(MESSAGE_TEMPLATE_ALL_API_URL, accessToken),
+		jsonStruct,
+		map[string]string{},
+	)
 	if err != nil {
 		return data, err
 	}
