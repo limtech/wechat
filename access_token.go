@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	ACCESS_TOKEN_API_URL string = "https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=%s&secret=%s"
+	ACCESS_TOKEN_API string = "https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=%s&secret=%s"
 )
 
 type AccessTokenData struct {
@@ -21,7 +21,7 @@ type AccessTokenData struct {
 func GetAccessToken(appId string, appSecret string) (AccessTokenData, error) {
 	var data AccessTokenData
 	// get remote data
-	res, err := HttpGet(fmt.Sprintf(ACCESS_TOKEN_API_URL, appId, appSecret))
+	res, err := HttpGet(fmt.Sprintf(ACCESS_TOKEN_API, appId, appSecret))
 	if err != nil {
 		return data, err
 	}

@@ -7,54 +7,70 @@ import (
 )
 
 const (
-	USER_LIST_API_URL string = "https://api.weixin.qq.com/cgi-bin/user/get?access_token=%s&next_openid=%s"
-	USER_INFO_API_URL string = "https://api.weixin.qq.com/cgi-bin/user/info?access_token=%s&openid=%s&lang=zh_CN"
+	// user
+	USER_LIST_API       string = "https://api.weixin.qq.com/cgi-bin/user/get?access_token=%s&next_openid=%s"        //
+	USER_INFO_API       string = "https://api.weixin.qq.com/cgi-bin/user/info?access_token=%s&openid=%s&lang=zh_CN" // 获取用户基本信息（包括UnionID机制）
+	USER_INFO_BATCH_API string = "https://api.weixin.qq.com/cgi-bin/user/info/batchget?access_token=%s"             // 批量获取用户基本信息
+	USRE_UPDATE_REMARK  string = "https://api.weixin.qq.com/cgi-bin/user/info/updateremark?access_token=%s"         // 设置用户备注名
+
 )
 
-type UserList struct {
-	Total  int64
-	Openid []string
-}
+type (
+	User struct {
+		AccessToken string
+	}
 
-type UserListData struct {
-	Total int64 `json:"total"`
-	Count int64 `json:"count"`
-	Data  struct {
+	UserList struct {
+		Total int64 `json:"total"`
+		Count int64 `json:"count"`
+		Data  struct {
+			Openid []string `json:"openid"`
+		} `json:"data"`
+		NextOpenid string `json:"next_openid"`
+
+		ErrStruct
+	}
+
+	UserListAll struct {
+		Total  int64    `json:"total"`
 		Openid []string `json:"openid"`
-	} `json:"data"`
-	NextOpenid string `json:"next_openid"`
+	}
 
-	ErrCode int    `json:"errcode"`
-	ErrMsg  string `json:"errmsg"`
+	UserInfo struct {
+		Subscribe      int     `json:"subscribe"`
+		Openid         string  `json:"openid"`
+		Nickname       string  `json:"nickname"`
+		Sex            int     `json:"sex"`
+		Language       string  `json:"language"`
+		City           string  `json:"city"`
+		Provice        string  `json:"province"`
+		Country        string  `json:"country"`
+		HeadImgUrl     string  `json:"headimgurl"`
+		SubscribeTime  int64   `json:"subscribe_time"`
+		UnionId        string  `json:"unionid"`
+		Remark         string  `json:"remark"`
+		GroupId        int64   `json:"groupid"`
+		TagidList      []int64 `json:"tagid_list"`
+		SubscribeScene string  `json:"subscribe_scene"`
+		QrScene        int64   `json:"qr_scene"`
+		QrSceneStr     string  `json:"qr_scene_str"`
+
+		ErrStruct
+	}
+)
+
+// new user
+func NewUser(accessToken string) *User {
+	return &User{
+		AccessToken: accessToken,
+	}
 }
 
-type UserInfo struct {
-	Subscribe      int     `json:"subscribe"`
-	Openid         string  `json:"openid"`
-	Nickname       string  `json:"nickname"`
-	Sex            int     `json:"sex"`
-	Language       string  `json:"language"`
-	City           string  `json:"city"`
-	Provice        string  `json:"province"`
-	Country        string  `json:"country"`
-	HeadImgUrl     string  `json:"headimgurl"`
-	SubscribeTime  int64   `json:"subscribe_time"`
-	UnionId        string  `json:"unionid"`
-	Remark         string  `json:"remark"`
-	GroupId        int64   `json:"groupid"`
-	TagidList      []int64 `json:"tagid_list"`
-	SubscribeScene string  `json:"subscribe_scene"`
-	QrScene        int64   `json:"qr_scene"`
-	QrSceneStr     string  `json:"qr_scene_str"`
-
-	ErrCode int    `json:"errcode"`
-	ErrMsg  string `json:"errmsg"`
-}
-
-func GetUserList(accessToken string, nextOpenid string) (UserListData, error) {
-	var data UserListData
+// 获取用户列表，单次最大值为10000
+func (self *User) GetList(nextOpenid string) (UserList, error) {
+	var data UserList
 	// get remote data
-	res, err := HttpGet(fmt.Sprintf(USER_LIST_API_URL, accessToken, nextOpenid))
+	res, err := HttpGet(fmt.Sprintf(USER_LIST_API, self.AccessToken, nextOpenid))
 	if err != nil {
 		return data, err
 	}
@@ -71,12 +87,13 @@ func GetUserList(accessToken string, nextOpenid string) (UserListData, error) {
 	return data, nil
 }
 
-func GetUserListAll(accessToken string) (*UserList, error) {
-	list := &UserList{}
+// 获取所有用户列表
+func (self *User) GetListAll() (*UserListAll, error) {
+	list := &UserListAll{}
 	nextOpenid := ""
 
 	for {
-		data, err := GetUserList(accessToken, nextOpenid)
+		data, err := self.GetList(nextOpenid)
 		if err != nil {
 			continue
 		}
@@ -93,11 +110,12 @@ func GetUserListAll(accessToken string) (*UserList, error) {
 	return list, nil
 }
 
-func GetUserInfo(accessToken string, openid string) (UserInfo, error) {
+// 获取用户基本信息(UnionID机制)
+func (self *User) GetUserInfo(openid string) (UserInfo, error) {
 	var data UserInfo
 
 	// get remote data
-	res, err := HttpGet(fmt.Sprintf(USER_INFO_API_URL, accessToken, openid))
+	res, err := HttpGet(fmt.Sprintf(USER_INFO_API, self.AccessToken, openid))
 	if err != nil {
 		return data, err
 	}
@@ -112,4 +130,32 @@ func GetUserInfo(accessToken string, openid string) (UserInfo, error) {
 	}
 
 	return data, nil
+}
+
+// 设置用户备注名
+func (self *User) UpdateRemark(openid string, remark string) error {
+	// get remote data
+	res, err := HttpPostJson(
+		fmt.Sprintf(USRE_UPDATE_REMARK, self.AccessToken),
+		map[string]interface{}{
+			"tagid":  openid,
+			"remark": remark,
+		},
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+
+	data := ErrStruct{}
+	// parse json data
+	if err := json.Unmarshal(res, &data); err != nil {
+		return err
+	}
+
+	if data.ErrCode != 0 {
+		return errors.New(data.ErrMsg)
+	}
+
+	return nil
 }

@@ -7,22 +7,35 @@ import (
 )
 
 const (
-	TICKET_API_URL string = "https://api.weixin.qq.com/cgi-bin/ticket/getticket?access_token=%s&type=jsapi"
+	TICKET_API string = "https://api.weixin.qq.com/cgi-bin/ticket/getticket?access_token=%s&type=jsapi"
 )
 
-type TicketData struct {
-	Ticket    string `json:"ticket"`
-	ExpiresIn int    `json:"expires_in"`
-	ErrCode   int    `json:"errcode"`
-	ErrMsg    string `json:"errmsg"`
+type (
+	Ticket struct {
+		AccessToken string
+	}
+
+	TicketData struct {
+		Ticket    string `json:"ticket"`
+		ExpiresIn int    `json:"expires_in"`
+
+		ErrStruct
+	}
+)
+
+// new ticket
+func NewTicket(accessToken string) *Ticket {
+	return &Ticket{
+		AccessToken: accessToken,
+	}
 }
 
 // get ticket by access_token
-func GetTicket(accessToken string) (TicketData, error) {
+func (self *Ticket) GetTicket() (TicketData, error) {
 	var data TicketData
 
 	// get remote data
-	res, err := HttpGet(fmt.Sprintf(TICKET_API_URL, accessToken))
+	res, err := HttpGet(fmt.Sprintf(TICKET_API, self.AccessToken))
 	if err != nil {
 		return data, err
 	}
