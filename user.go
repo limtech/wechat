@@ -470,6 +470,10 @@ func (self *User) GetBlacklist(nextOpenid string) (UserList, error) {
 		},
 		nil,
 	)
+	if err != nil {
+		return data, err
+	}
+
 	// parse json data
 	if err := json.Unmarshal(res, &data); err != nil {
 		return data, err
